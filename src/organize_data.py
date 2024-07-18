@@ -37,15 +37,6 @@ class organizeData():
             print("Couldn't find first sign in button")
 
         time.sleep(1)
-    
-        #try:
-        #    correctSignInXPATH = '//*[@id="fastrack-div"]/div[4]/div[4]/a'
-        #    correctSignIn = self.driver.find_element(By.XPATH, correctSignInXPATH)
-
-        #    if correctSignIn is not None:
-        #        correctSignIn.click()
-        #except Exception as e: 
-        #    print("No button to change to correct sign in ")
 
         try:
             inputXPATH = '//input[@id="username"]'
@@ -85,8 +76,8 @@ class organizeData():
 
                     url = row[0]
                     if url[0] != 'h':
+                        print(url[0])
                         continue
-
 
                     self.signIn(email="aeplotkin@gmail.com", password="MonkeyMilo1")
 
