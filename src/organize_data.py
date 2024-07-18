@@ -29,7 +29,7 @@ class organizeData():
         self.driver.get('https://www.linkedin.com/')
         time.sleep(1)
         try:
-            signInOneXPATH = '//*[@href="https://www.linkedin.com/login?fromSignIn=true&trk=public_profile_not-found-log-in_nav-header-signin"]'
+            signInOneXPATH = '//a[@class="nav__button-secondary btn-md btn-secondary-emphasis"]'
             signInOne = self.driver.find_element(By.XPATH, signInOneXPATH)
             if signInOne is not None:
                 signInOne.click()
@@ -37,29 +37,30 @@ class organizeData():
             print("Couldn't find first sign in button")
 
         time.sleep(1)
+    
+        #try:
+        #    correctSignInXPATH = '//*[@id="fastrack-div"]/div[4]/div[4]/a'
+        #    correctSignIn = self.driver.find_element(By.XPATH, correctSignInXPATH)
+
+        #    if correctSignIn is not None:
+        #        correctSignIn.click()
+        #except Exception as e: 
+        #    print("No button to change to correct sign in ")
 
         try:
-            correctSignInXPATH = '//*[@id="fastrack-div"]/div[4]/div[4]/a'
-            correctSignIn = self.driver.find_element(By.XPATH, correctSignInXPATH)
-
-            if correctSignIn is not None:
-                correctSignIn.click()
-        except Exception as e: 
-            print("No button to change to correct sign in ")
-
-
-        time.sleep(3)
-
-        try:
-            inputXPATH = '//*[@id="username"]'
+            inputXPATH = '//input[@id="username"]'
+            emailInput = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, inputXPATH)))
             emailInput = self.driver.find_element(By.XPATH, inputXPATH)
             emailInput.click()
+            emailInput.clear()
             emailInput.send_keys(email)
 
             time.sleep(1)
-            passwordXPATH = '//*[@id="password"]'
+            passwordXPATH = '//input[@id="password"]'
+            passwordInput = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, passwordXPATH)))
             passwordInput = self.driver.find_element(By.XPATH, passwordXPATH)
             passwordInput.click()
+            passwordInput.clear()
             passwordInput.send_keys(password)
 
             signInButtonTwoXPATH = '//*[@id="organic-div"]/form/div[3]/button'
@@ -67,6 +68,12 @@ class organizeData():
             signInButtonTwo.click()
         except Exception as e: 
             print("Error entering email and password")
+
+        
+        msgXPATH = '//*[@id="global-nav"]/div/nav/ul/li[4]/a/div'
+        itWorks = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, msgXPATH)))
+        itWorks = self.driver.find_element(By.XPATH, msgXPATH)
+        assert itWorks is not None, "Sign in credentials incorrect"
 
         
 
