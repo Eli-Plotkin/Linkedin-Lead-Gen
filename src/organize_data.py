@@ -5,6 +5,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
+import requests
+from bs4 import BeautifulSoup
+import re
 
 
 class organizeData():
@@ -24,9 +27,10 @@ class organizeData():
         
 
 
-    def signIn(self, email: str, password: str):
+    def sign_in(self, email: str, password: str):
 
         self.driver.get('https://www.linkedin.com/')
+        self.driver.maximize_window()
         time.sleep(1)
         try:
             signInOneXPATH = '//a[@class="nav__button-secondary btn-md btn-secondary-emphasis"]'
@@ -68,26 +72,65 @@ class organizeData():
 
         
 
-    def findBigPlayers(self, csvFile: str):
-            with open(csvFile, mode='r', newline='') as file:
-                csvReader = csv.reader(file)
-                for row in csvReader:
-                    print(row)
+    def get_company_and_position(self, csvFile: str) -> dict:
+        with open(csvFile, mode='r', newline='') as file:
+            csvReader = csv.reader(file)
 
-                    url = row[0]
-                    if url[0] != 'h':
-                        print(url[0])
-                        continue
+            self.sign_in(email="hiring@brighthire.ai", password="XZP5mac5zdw-cda4ktk")
+            company_and_position = dict()
 
-                    self.signIn(email="aeplotkin@gmail.com", password="MonkeyMilo1")
+            for row in csvReader:
 
-                    time.sleep(2)
+                url = row[0]
+                if url[0] != 'h':
+                    continue
 
-                    self.driver.get(url=url)
+                time.sleep(2)
 
-                    time.sleep(3)
+                self.driver.get(url=url)
 
-                    companyXPATH = '//*[@id="profile-content"]/div/div[2]/div/div/main/section[1]/div[2]/div[2]/ul/li[1]/button'
+                time.sleep(3)
+
+                companyXPATH = '//*[@id="profile-content"]/div/div[2]/div/div/main/section[1]/div[2]/div[2]/ul/li[1]/button'
+                try:
+                    company_button = None
                     company_button = self.driver.find_element(By.XPATH, companyXPATH)
-                    company_button.click()
+                    if company_button is None:
+                        raise e
+                    
+                except Exception as e:
+                    print(f'Error Finding Company {row[3]}')
 
+                
+
+                company_name = company_button.text
+
+                time.sleep(1)
+
+                curr_url = self.driver.current_url
+                self.driver.get(curr_url + '/details/experience/')
+
+                #NOW ON EXPERIENCES PAGE
+                r = requests.get(self.driver.current_url)
+
+                time.sleep(2)
+                
+                soup = BeautifulSoup(r.text, 'html.parser')
+                position_html = None
+                position_html = soup.find('span', attrs=({"class": "pvs-entity__caption-wrapper"})).parent.parent.parent.find(
+                    'div', attrs=({"class": "display-flex align-items-center mr1 hoverable-link-text t-bold"}))
+                if position_html is None:
+                    print("BS4 DIDN'T WORK")
+                else:
+                    print(position_html)
+                    
+
+                position = position_html.text
+                print(position)
+
+                company_and_position = {company_name, position}
+                company_and_position[row[3]] = company_and_position
+                print(row[3] + ": " + company_and_position[row[3]][0] + ", " + company_and_position[row[3]][1])
+
+            file.close()
+            return company_and_position
