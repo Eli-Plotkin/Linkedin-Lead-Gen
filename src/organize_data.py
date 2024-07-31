@@ -74,18 +74,14 @@ class organizeData():
 
         
 
-    def get_companies_and_positions(self, csvFile: str) -> dict:
+    def get_data(self, csvFile: str) -> dict:
         with open(csvFile, mode='r', newline='') as file:
             csvReader = csv.reader(file)
 
             self.sign_in(email="aeplotkin@gmail.com", password="MonkeyMilo1")
-            company_and_position = dict()
+            company_and_size_and_position = dict()
 
-            for i, row in enumerate(csvReader):
-
-                if i > 2:
-                    break
-
+            for row in csvReader:
                 url = row[0]
                 if url[0] != 'h':
                     continue
@@ -120,37 +116,56 @@ class organizeData():
 
                 company = current_company_section.find('span', class_="visually-hidden").text
                 position = current_position_section.find('span', class_="visually-hidden").text
-                
-                
-                this_company_and_position = (company, position)
-                company_and_position[row[3]] = this_company_and_position
-                print(row[3] + ": " + company_and_position[row[3]][0] + ", " + company_and_position[row[3]][1])
+
+                #Get Company Size
+                company_link_section = experiences.find('a', class_="optional-action-target-wrapper display-flex")
+                company_link = company_link_section['href']
+                company_size = self.find_company_size(company_link).strip()
+
+
+                this_company_and_size_and_position = (company, company_size, position)
+                company_and_size_and_position[row[3]] = this_company_and_size_and_position
+                print(f'{row[3]} : {company_and_size_and_position[row[3]][0]}, {company_and_size_and_position[row[3]][1]}, {company_and_size_and_position[row[3]][2]}')
 
             file.close()
-            return company_and_position
-    
+            return company_and_size_and_position
+        
+
+        
+    def find_company_size(self, company_url: str) -> str:
+        self.driver.get(company_url)
+        
+        time.sleep(1)
+
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')    
+        employee_count = soup.find('a', class_="ember-view org-top-card-summary-info-list__info-item")
+
+        return employee_count.text
+
+
+
     def export_data(self, data: dict):
        # Create a new workbook and select the active worksheet
         workbook = openpyxl.Workbook()
         sheet = workbook.active
 
         # Optionally, write a header row
-        sheet.append(['Name', 'Company', 'Position'])
+        sheet.append(['Name', 'Company', 'Size', 'Position'])
 
 
         # Write the key-value pairs
-        for key, (value_part1, value_part2) in data.items():
-            sheet.append([key, value_part1, value_part2])
+        for key, (value_part1, value_part2, value_part3) in data.items():
+            sheet.append([key, value_part1, value_part2, value_part3])
 
 
         #Style Sheet
         border_style = Border(bottom=Side(border_style='thin'))
 
-        for col in range(1, 4):  # Columns A, B, C (1-based index)
+        for col in range(1, 5):  # Columns A, B, C (1-based index)
             cell = sheet.cell(row=1, column=col)
             cell.border = border_style
 
-        columns_to_resize = ['A', 'B', 'C']
+        columns_to_resize = ['A', 'B', 'C', 'D']
         column_width = 20
         
 
