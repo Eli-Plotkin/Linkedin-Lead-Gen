@@ -1,4 +1,6 @@
 import csv
+import openpyxl
+from openpyxl.styles import Border, Side
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -72,14 +74,17 @@ class organizeData():
 
         
 
-    def get_company_and_position(self, csvFile: str) -> dict:
+    def get_companies_and_positions(self, csvFile: str) -> dict:
         with open(csvFile, mode='r', newline='') as file:
             csvReader = csv.reader(file)
 
-            self.sign_in(email="hiring@brighthire.ai", password="XZP5mac5zdw-cda4ktk")
+            self.sign_in(email="aeplotkin@gmail.com", password="MonkeyMilo1")
             company_and_position = dict()
 
-            for row in csvReader:
+            for i, row in enumerate(csvReader):
+
+                if i > 2:
+                    break
 
                 url = row[0]
                 if url[0] != 'h':
@@ -89,48 +94,68 @@ class organizeData():
 
                 self.driver.get(url=url)
 
-                time.sleep(3)
-
-                companyXPATH = '//*[@id="profile-content"]/div/div[2]/div/div/main/section[1]/div[2]/div[2]/ul/li[1]/button'
-                try:
-                    company_button = None
-                    company_button = self.driver.find_element(By.XPATH, companyXPATH)
-                    if company_button is None:
-                        raise e
-                    
-                except Exception as e:
-                    print(f'Error Finding Company {row[3]}')
-
-                
-
-                company_name = company_button.text
-
                 time.sleep(1)
-
-                curr_url = self.driver.current_url
-                self.driver.get(curr_url + '/details/experience/')
-
-                #NOW ON EXPERIENCES PAGE
-                r = requests.get(self.driver.current_url)
-
-                time.sleep(2)
                 
-                soup = BeautifulSoup(r.text, 'html.parser')
-                position_html = None
-                position_html = soup.find('span', attrs=({"class": "pvs-entity__caption-wrapper"})).parent.parent.parent.find(
-                    'div', attrs=({"class": "display-flex align-items-center mr1 hoverable-link-text t-bold"}))
-                if position_html is None:
-                    print("BS4 DIDN'T WORK")
+                curr_url = self.driver.current_url
+                target = curr_url + "/details/experience/"
+                self.driver.get(target)
+                print(target)
+
+                time.sleep(4)
+                
+                soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+                main_page = soup.find('main', class_= "scaffold-layout__main")
+                experiences = main_page.find('div', class_="pvs-list__container")
+                current_experience = experiences.find('li', class_="pvs-list__paged-list-item artdeco-list__item pvs-list__item--line-separated pvs-list__item--one-column")
+
+                current_company_section = current_experience.find('div', class_= "display-flex align-items-center mr1 hoverable-link-text t-bold")
+                
+                if current_company_section is None:
+                    current_company_section = current_experience.find('span', class_="t-14 t-normal")
+                    current_position_section = current_experience.find('div', class_="display-flex flex-wrap align-items-center full-height")
                 else:
-                    print(position_html)
-                    
+                    positions_list = current_experience.find('ul', attrs={'tabindex': '-1'})
+                    current_position_section = positions_list.find('div', class_="display-flex align-items-center mr1 hoverable-link-text t-bold")
 
-                position = position_html.text
-                print(position)
 
-                company_and_position = {company_name, position}
-                company_and_position[row[3]] = company_and_position
+                company = current_company_section.find('span', class_="visually-hidden").text
+                position = current_position_section.find('span', class_="visually-hidden").text
+                
+                
+                this_company_and_position = (company, position)
+                company_and_position[row[3]] = this_company_and_position
                 print(row[3] + ": " + company_and_position[row[3]][0] + ", " + company_and_position[row[3]][1])
 
             file.close()
             return company_and_position
+    
+    def export_data(self, data: dict):
+       # Create a new workbook and select the active worksheet
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+
+        # Optionally, write a header row
+        sheet.append(['Name', 'Company', 'Position'])
+
+
+        # Write the key-value pairs
+        for key, (value_part1, value_part2) in data.items():
+            sheet.append([key, value_part1, value_part2])
+
+
+        #Style Sheet
+        border_style = Border(bottom=Side(border_style='thin'))
+
+        for col in range(1, 4):  # Columns A, B, C (1-based index)
+            cell = sheet.cell(row=1, column=col)
+            cell.border = border_style
+
+        columns_to_resize = ['A', 'B', 'C']
+        column_width = 20
+        
+
+        for col_letter in columns_to_resize:
+            sheet.column_dimensions[col_letter].width = column_width
+
+        # Save the workbook to a file
+        workbook.save('output.xlsx')
