@@ -74,18 +74,15 @@ class organizeData():
 
         
 
-    def get_data(self, csvFile: str) -> dict:
+    def get_data(self, csvFile: str, email: str, password: str) -> dict:
         with open(csvFile, mode='r', newline='') as file:
             csvReader = csv.reader(file)
 
-            self.sign_in(email="aeplotkin@gmail.com", password="MonkeyMilo1")
+            self.sign_in(email=email, password=password)
             company_and_size_and_position = dict()
 
-            for i, row in enumerate(csvReader):
-                if i > 7:
-                    break
-
-
+            for row in csvReader:
+                
                 url = row[0]
                 if url[0] != 'h':
                     continue
