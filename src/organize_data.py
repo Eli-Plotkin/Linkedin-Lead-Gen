@@ -81,28 +81,44 @@ class organizeData():
             self.sign_in(email="aeplotkin@gmail.com", password="MonkeyMilo1")
             company_and_size_and_position = dict()
 
-            for row in csvReader:
+            for i, row in enumerate(csvReader):
+                if i > 7:
+                    break
+
+
                 url = row[0]
                 if url[0] != 'h':
                     continue
 
-                time.sleep(2)
-
                 self.driver.get(url=url)
 
-                time.sleep(1)
+                time.sleep(7)
                 
                 curr_url = self.driver.current_url
                 target = curr_url + "/details/experience/"
                 self.driver.get(target)
                 print(target)
 
-                time.sleep(4)
+                time.sleep(2)
                 
+                try:
+                    experiences_element = WebDriverWait(self.driver, 20).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "pvs-list__container")))
+                except TimeoutError:
+                    print(f"Timeout while waiting for experiences container for URL: {url}")
+                    continue
+
                 soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-                main_page = soup.find('main', class_= "scaffold-layout__main")
-                experiences = main_page.find('div', class_="pvs-list__container")
-                current_experience = experiences.find('li', class_="pvs-list__paged-list-item artdeco-list__item pvs-list__item--line-separated pvs-list__item--one-column")
+                experiences = soup.find('div', class_="pvs-list__container")
+                if experiences is None:
+                    print(f"Could not find experiences container for URL: {url}")
+                    continue
+
+                try:
+                    current_experience = experiences.find('li', class_="pvs-list__paged-list-item artdeco-list__item pvs-list__item--line-separated pvs-list__item--one-column")
+                except Exception as e:
+                    print(f"Error finding current experience for URL: {url} - {e}")
+                    continue
 
                 current_company_section = current_experience.find('div', class_= "display-flex align-items-center mr1 hoverable-link-text t-bold")
                 
@@ -118,17 +134,38 @@ class organizeData():
                 position = current_position_section.find('span', class_="visually-hidden").text
 
                 #Get Company Size
-                company_link_section = experiences.find('a', class_="optional-action-target-wrapper display-flex")
+                try:
+                    company_link_section = experiences.find('a', class_="optional-action-target-wrapper display-flex")
+                except AttributeError:
+                    print(f"Error finding company link section for URL: {url}")
+                    continue
+
                 company_link = company_link_section['href']
-                company_size = self.find_company_size(company_link).strip()
+                company_size = self.find_company_size(company_link)
 
 
                 this_company_and_size_and_position = (company, company_size, position)
                 company_and_size_and_position[row[3]] = this_company_and_size_and_position
                 print(f'{row[3]} : {company_and_size_and_position[row[3]][0]}, {company_and_size_and_position[row[3]][1]}, {company_and_size_and_position[row[3]][2]}')
 
-            file.close()
-            return company_and_size_and_position
+        #Comparator for company sizes
+        def company_size_comparator(val):
+            size_order = {
+                "2-10 employees": 0,
+                "11-50 employees": 1,
+                "51-200 employees": 2,
+                "201-500 employees": 3,
+                "501-1K employees": 4,
+                "1K-5K employees": 5,
+                "5K-10K employees": 6,
+                "10K+ employees": 7
+            }
+            return size_order.get(val, -1)
+        
+        sorted_list = sorted(company_and_size_and_position.items(), key=lambda item: company_size_comparator(item[1][1]), reverse=True)
+        sorted_dict = {k: v for k, v in sorted_list}
+  
+        return sorted_dict
         
 
         
@@ -140,7 +177,10 @@ class organizeData():
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')    
         employee_count = soup.find('a', class_="ember-view org-top-card-summary-info-list__info-item")
 
-        return employee_count.text
+        if employee_count is None:
+            return "Company size not posted on LinkedIn"
+
+        return employee_count.text.strip()
 
 
 
