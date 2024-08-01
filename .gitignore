@@ -1,0 +1,7 @@
+# Created by pytest automatically.
+*.csv
+*.xlsx
+.pytest_cache
+__pycache__
+venv
+
