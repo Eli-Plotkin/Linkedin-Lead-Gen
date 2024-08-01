@@ -7,9 +7,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
-import requests
 from bs4 import BeautifulSoup
-import re
 
 
 class organizeData():
@@ -82,7 +80,7 @@ class organizeData():
             company_and_size_and_position = dict()
 
             for row in csvReader:
-                
+
                 url = row[0]
                 if url[0] != 'h':
                     continue
