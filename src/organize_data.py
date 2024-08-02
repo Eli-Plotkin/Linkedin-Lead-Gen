@@ -27,7 +27,7 @@ class organizeData():
         
 
 
-    def sign_in(self, email: str, password: str):
+    def __sign_in(self, email: str, password: str):
 
         self.driver.get('https://www.linkedin.com/')
         self.driver.maximize_window()
@@ -72,14 +72,22 @@ class organizeData():
 
         
 
-    def get_data(self, csvFile: str, email: str, password: str) -> dict:
+    def __get_data(self, csvFile: str, email: str, password: str, is_test_data: bool) -> dict:
         with open(csvFile, mode='r', newline='') as file:
             csvReader = csv.reader(file)
+            rows = list(csvReader)
 
-            self.sign_in(email=email, password=password)
-            company_and_size_and_position = dict()
+            self.__sign_in(email=email, password=password)
+            organized_data = dict()
 
-            for row in csvReader:
+            if is_test_data:
+                breakpoint = 5
+            else:
+                breakpoint = len(rows)
+            
+            for i, row in enumerate(rows):
+                if i > breakpoint:
+                    break
 
                 url = row[0]
                 if url[0] != 'h':
@@ -136,12 +144,11 @@ class organizeData():
                     continue
 
                 company_link = company_link_section['href']
-                company_size = self.find_company_size(company_link)
+                company_size = self.__find_company_size(company_link)
 
 
-                this_company_and_size_and_position = (company, company_size, position)
-                company_and_size_and_position[row[3]] = this_company_and_size_and_position
-                print(f'{row[3]} : {company_and_size_and_position[row[3]][0]}, {company_and_size_and_position[row[3]][1]}, {company_and_size_and_position[row[3]][2]}')
+                organized_data[row[3]] = (company, company_size, position, url)
+                print(f'{row[3]} : {organized_data[row[3]][0]}, {organized_data[row[3]][1]}, {organized_data[row[3]][2]}, {url}')
 
         #Comparator for company sizes
         def company_size_comparator(val):
@@ -157,14 +164,14 @@ class organizeData():
             }
             return size_order.get(val, -1)
         
-        sorted_list = sorted(company_and_size_and_position.items(), key=lambda item: company_size_comparator(item[1][1]), reverse=True)
+        sorted_list = sorted(organized_data.items(), key=lambda item: company_size_comparator(item[1][1]), reverse=True)
         sorted_dict = {k: v for k, v in sorted_list}
   
         return sorted_dict
         
 
         
-    def find_company_size(self, company_url: str) -> str:
+    def __find_company_size(self, company_url: str) -> str:
         self.driver.get(company_url)
         
         time.sleep(1)
@@ -179,29 +186,32 @@ class organizeData():
 
 
 
-    def export_data(self, data: dict):
+    def export_organized_data(self, csvFile: str, email: str, password: str, is_test_data: bool = False):
+        # Gather all data to export
+        data = self.__get_data(csvFile=csvFile, email=email, password=password, is_test_data=is_test_data)
+
        # Create a new workbook and select the active worksheet
         workbook = openpyxl.Workbook()
         sheet = workbook.active
 
         # Optionally, write a header row
-        sheet.append(['Name', 'Company', 'Size', 'Position'])
+        sheet.append(['Name', 'Company', 'Size', 'Position,', 'LinkedIn Profile URL'])
 
 
         # Write the key-value pairs
-        for key, (value_part1, value_part2, value_part3) in data.items():
-            sheet.append([key, value_part1, value_part2, value_part3])
+        for key, (value_part1, value_part2, value_part3, value_part_4) in data.items():
+            sheet.append([key, value_part1, value_part2, value_part3, value_part_4])
 
 
         #Style Sheet
         border_style = Border(bottom=Side(border_style='thin'))
 
-        for col in range(1, 5):  # Columns A, B, C (1-based index)
+        for col in range(1, 6):  # Columns A, B, C, D, E (1-based index)
             cell = sheet.cell(row=1, column=col)
             cell.border = border_style
 
-        columns_to_resize = ['A', 'B', 'C', 'D']
-        column_width = 20
+        columns_to_resize = ['A', 'B', 'C', 'D', 'E']
+        column_width = 25
         
 
         for col_letter in columns_to_resize:
