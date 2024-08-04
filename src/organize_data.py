@@ -96,6 +96,9 @@ class organizeData():
                 self.driver.get(url=url)
 
                 time.sleep(5)
+
+                soup1 = BeautifulSoup(self.driver.page_source, 'html.parser')
+                person_location = soup1.find('span', class_="text-body-small inline t-black--light break-words").text.strip()
                 
                 curr_url = self.driver.current_url
                 target = curr_url + "/details/experience/"
@@ -111,8 +114,9 @@ class organizeData():
                     print(f"Timeout while waiting for experiences container for URL: {url}")
                     continue
 
-                soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-                experiences = soup.find('div', class_="pvs-list__container")
+                soup2 = BeautifulSoup(self.driver.page_source, 'html.parser')
+                experiences = soup2.find('div', class_="pvs-list__container")
+
                 if experiences is None:
                     print(f"Could not find experiences container for URL: {url}")
                     continue
@@ -150,7 +154,8 @@ class organizeData():
 
                 company_data = self.__find_company_data()
                 
-                organized_data[row[3]] = (company, company_data[0], company_data[1],  company_data[2], position, url)
+                organized_data[row[3]] = (person_location, company, company_data[0], 
+                                          company_data[1],  company_data[2], position, url)
 
         #Comparator for company sizes
         def company_size_comparator(val):
@@ -166,7 +171,7 @@ class organizeData():
             }
             return size_order.get(val, -1)
         
-        sorted_list = sorted(organized_data.items(), key=lambda item: company_size_comparator(item[1][3]), reverse=True) 
+        sorted_list = sorted(organized_data.items(), key=lambda item: company_size_comparator(item[1][4]), reverse=True) 
         sorted_dict = {k: v for k, v in sorted_list}
 
   
@@ -209,23 +214,25 @@ class organizeData():
         sheet = workbook.active
 
         # Optionally, write a header row
-        sheet.append(['Name', 'Company', 'Company Industry', 'Company Location', 'Company Size', 'Position,', 'LinkedIn Profile URL'])
+        sheet.append(['Name', 'Individual Location', 'Company', 
+                      'Company Industry', 'Company Location', 'Company Size', 
+                      'Position,', 'LinkedIn Profile URL'])
 
 
         # Write the key-value pairs
-        for key, (value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6) in data.items():
-            sheet.append([key, value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6])
+        for key, (value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6, value_part_7) in data.items():
+            sheet.append([key, value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6, value_part_7])
 
 
         #Style Sheet
         border_style = Border(bottom=Side(border_style='thin'))
 
-        for col in range(1, 8):  # Columns A, B, C, D, E, F, G (1-based index)
+        for col in range(1, 9):  # Columns A, B, C, D, E, F, G (1-based index)
             cell = sheet.cell(row=1, column=col)
             cell.border = border_style
 
-        columns_to_resize = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-        column_width = 25
+        columns_to_resize = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        column_width = 28
         
 
         for col_letter in columns_to_resize:
