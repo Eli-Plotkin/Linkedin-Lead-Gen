@@ -196,13 +196,6 @@ class organizeData():
 
         relevant_data = tuple((industry, location, size))
 
-        # people_page = self.driver.find_element(By.CLASS_NAME, 'text-heading-xlarge')
-        # people_page.click()
-
-        # time.sleep(2)
-        
-        # employee_count = self.driver.find_element(By.CLASS_NAME, 'text-heading-xlarge')
-
         return relevant_data
         
 
