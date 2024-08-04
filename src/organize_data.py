@@ -95,14 +95,14 @@ class organizeData():
 
                 self.driver.get(url=url)
 
-                time.sleep(7)
+                time.sleep(5)
                 
                 curr_url = self.driver.current_url
                 target = curr_url + "/details/experience/"
                 self.driver.get(target)
                 print(target)
 
-                time.sleep(2)
+                time.sleep(3)
                 
                 try:
                     experiences_element = WebDriverWait(self.driver, 20).until(
@@ -144,11 +144,13 @@ class organizeData():
                     continue
 
                 company_link = company_link_section['href']
-                company_size = self.__find_company_size(company_link)
+                self.driver.get(company_link)
 
+                time.sleep(3)
 
-                organized_data[row[3]] = (company, company_size, position, url)
-                print(f'{row[3]} : {organized_data[row[3]][0]}, {organized_data[row[3]][1]}, {organized_data[row[3]][2]}, {url}')
+                company_data = self.__find_company_data()
+                
+                organized_data[row[3]] = (company, company_data[0], company_data[1],  company_data[2], position, url)
 
         #Comparator for company sizes
         def company_size_comparator(val):
@@ -164,26 +166,45 @@ class organizeData():
             }
             return size_order.get(val, -1)
         
-        sorted_list = sorted(organized_data.items(), key=lambda item: company_size_comparator(item[1][1]), reverse=True)
+        sorted_list = sorted(organized_data.items(), key=lambda item: company_size_comparator(item[1][3]), reverse=True) 
         sorted_dict = {k: v for k, v in sorted_list}
+
   
         return sorted_dict
         
 
+    # REQUIRES: Driver is currently on company page
+    def __find_company_data(self) -> tuple:
+        check_page_loaded = WebDriverWait(self.driver, 20).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "org-top-card-summary-info-list")))
         
-    def __find_company_size(self, company_url: str) -> str:
-        self.driver.get(company_url)
+        if not check_page_loaded:
+            print("Page did not load")
+            return
+
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        data_section = soup.find('div', class_ = "org-top-card-summary-info-list" )
+
+        if data_section is None:
+            print("data_section not found")
+            return
+
+        data = data_section.find_all('div', class_ = "org-top-card-summary-info-list__info-item")
+        industry = data[0].text.strip()
+        location = data[1].text.strip()
+        size = data_section.find('a', class_ = "ember-view org-top-card-summary-info-list__info-item").text.strip()
+
+        relevant_data = tuple((industry, location, size))
+
+        # people_page = self.driver.find_element(By.CLASS_NAME, 'text-heading-xlarge')
+        # people_page.click()
+
+        # time.sleep(2)
         
-        time.sleep(1)
+        # employee_count = self.driver.find_element(By.CLASS_NAME, 'text-heading-xlarge')
 
-        soup = BeautifulSoup(self.driver.page_source, 'html.parser')    
-        employee_count = soup.find('a', class_="ember-view org-top-card-summary-info-list__info-item")
-
-        if employee_count is None:
-            return "Company size not posted on LinkedIn"
-
-        return employee_count.text.strip()
-
+        return relevant_data
+        
 
 
     def export_organized_data(self, csvFile: str, email: str, password: str, is_test_data: bool = False):
@@ -195,22 +216,22 @@ class organizeData():
         sheet = workbook.active
 
         # Optionally, write a header row
-        sheet.append(['Name', 'Company', 'Size', 'Position,', 'LinkedIn Profile URL'])
+        sheet.append(['Name', 'Company', 'Company Industry', 'Company Location', 'Company Size', 'Position,', 'LinkedIn Profile URL'])
 
 
         # Write the key-value pairs
-        for key, (value_part1, value_part2, value_part3, value_part_4) in data.items():
-            sheet.append([key, value_part1, value_part2, value_part3, value_part_4])
+        for key, (value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6) in data.items():
+            sheet.append([key, value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6])
 
 
         #Style Sheet
         border_style = Border(bottom=Side(border_style='thin'))
 
-        for col in range(1, 6):  # Columns A, B, C, D, E (1-based index)
+        for col in range(1, 8):  # Columns A, B, C, D, E, F, G (1-based index)
             cell = sheet.cell(row=1, column=col)
             cell.border = border_style
 
-        columns_to_resize = ['A', 'B', 'C', 'D', 'E']
+        columns_to_resize = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
         column_width = 25
         
 
