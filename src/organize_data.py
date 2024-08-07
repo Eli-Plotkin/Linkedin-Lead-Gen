@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
 from bs4 import BeautifulSoup
+import re
 
 
 class organizeData():
@@ -32,15 +33,33 @@ class organizeData():
         self.driver.get('https://www.linkedin.com/')
         self.driver.maximize_window()
         time.sleep(1)
+        
         try:
-            signInOneXPATH = '//a[@class="nav__button-secondary btn-md btn-secondary-emphasis"]'
-            signInOne = self.driver.find_element(By.XPATH, signInOneXPATH)
-            if signInOne is not None:
-                signInOne.click()
+            signInOneXPATH1 = '//a[@class="nav__button-secondary btn-md btn-secondary-emphasis"]'
+            signInOneXPATH2 = '//a[@class="nav__button-secondary btn-sm btn-primary"]'
+
+            path1 = True
+
+            signInOneV1 = self.driver.find_element(By.XPATH, signInOneXPATH1)
+
+            if signInOneV1 is not None:
+                signInOneV1.click()
+
+            else:
+                signInOneV2 = self.driver.find_element(By.XPATH, signInOneXPATH2)
+                signInOneV2.click()
+                path1 = False
+
         except Exception as e: 
             print("Couldn't find first sign in button")
+            return
 
         time.sleep(1)
+
+        if not path1:
+            goToCredentials = self.driver.find_element(By.CLASS_NAME, "main__sign-in-link")
+            goToCredentials.click()
+            time.sleep(1)
 
         try:
             inputXPATH = '//input[@id="username"]'
@@ -157,21 +176,8 @@ class organizeData():
                 organized_data[row[3]] = (person_location, company, company_data[0], 
                                           company_data[1],  company_data[2], position, url)
 
-        #Comparator for company sizes
-        def company_size_comparator(val):
-            size_order = {
-                "2-10 employees": 0,
-                "11-50 employees": 1,
-                "51-200 employees": 2,
-                "201-500 employees": 3,
-                "501-1K employees": 4,
-                "1K-5K employees": 5,
-                "5K-10K employees": 6,
-                "10K+ employees": 7
-            }
-            return size_order.get(val, -1)
         
-        sorted_list = sorted(organized_data.items(), key=lambda item: company_size_comparator(item[1][4]), reverse=True) 
+        sorted_list = sorted(organized_data.items(), key=lambda item: item[1][4], reverse=True) 
         sorted_dict = {k: v for k, v in sorted_list}
 
   
@@ -180,10 +186,21 @@ class organizeData():
 
     # REQUIRES: Driver is currently on company page
     def __find_company_data(self) -> tuple:
-        check_page_loaded = WebDriverWait(self.driver, 20).until(
+        try:
+            check_page_loaded1 = WebDriverWait(self.driver, 20).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "org-top-card-summary-info-list")))
+        except Exception as e:
+            return tuple(("No company page on LinkedIn", "No company page on LinkedIn", 1))
+        
+        home_section_xpath = 'Home'
+        home_section = self.driver.find_element(By.LINK_TEXT, home_section_xpath)
+        home_section.click()
+
+
+        check_page_loaded2 = WebDriverWait(self.driver, 20).until(
             EC.presence_of_element_located((By.CLASS_NAME, "org-top-card-summary-info-list")))
         
-        if not check_page_loaded:
+        if not check_page_loaded2:
             print("Page did not load")
             return
 
@@ -197,12 +214,41 @@ class organizeData():
         data = data_section.find_all('div', class_ = "org-top-card-summary-info-list__info-item")
         industry = data[0].text.strip()
         location = data[1].text.strip()
-        size = data_section.find('a', class_ = "ember-view org-top-card-summary-info-list__info-item").text.strip()
+
+        # size = data_section.find('a', class_ = "ember-view org-top-card-summary-info-list__info-item").text.strip()
+        size = self.__find_exact_company_size()
 
         relevant_data = tuple((industry, location, size))
 
         return relevant_data
         
+
+    def __find_exact_company_size(self) -> int:
+        self.driver.get(self.driver.current_url + 'people/')
+
+        check_page_loaded = WebDriverWait(self.driver, 20).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "text-heading-xlarge")))
+        
+        if not check_page_loaded:
+            print("Page did not load")
+            return
+
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        company_size_text = soup.find('h2', class_ = "text-heading-xlarge").text.strip()
+
+         # Extract numbers from the text
+        company_size_num_match = re.search(r'\d+(?:,\d+)*', company_size_text)
+        if company_size_num_match:
+            company_size_num = company_size_num_match.group()
+            # Remove commas
+            company_size_num = company_size_num.replace(',', '')
+        else:
+            print("No numeric value found for company size")
+            return 0  # Return a default value if no number is found
+        
+        return int(company_size_num)
+
+
 
 
     def export_organized_data(self, csvFile: str, email: str, password: str, is_test_data: bool = False):
