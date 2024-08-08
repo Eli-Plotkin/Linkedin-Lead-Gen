@@ -34,31 +34,17 @@ class scrape_profiles():
         time.sleep(1)
 
         try:
-            signInOneXPATH1 = '//a[@class="nav__button-secondary btn-md btn-secondary-emphasis"]'
-            signInOneXPATH2 = '//a[@class="nav__button-secondary btn-sm btn-primary"]'
 
-            path1 = True
+            signInOne = self.driver.find_element(By.LINK_TEXT, "Sign in")
 
-            signInOneV1 = self.driver.find_element(By.XPATH, signInOneXPATH1)
-
-            if signInOneV1 is not None:
-                signInOneV1.click()
-
-            else:
-                signInOneV2 = self.driver.find_element(By.XPATH, signInOneXPATH2)
-                signInOneV2.click()
-                path1 = False
+            if signInOne:
+                signInOne.click()
 
         except Exception as e: 
-            print("Couldn't find first sign in button")
+            print("Couldn't find sign in button")
             return
 
         time.sleep(1)
-
-        if not path1:
-            goToCredentialsXPATH = '//a[@class="main__sign-in-link"]'
-            goToCredentials = self.driver.find_element(By.XPATH, goToCredentialsXPATH)
-            goToCredentials.click()
 
         try:
             inputXPATH = '//input[@id="username"]'
@@ -95,6 +81,9 @@ class scrape_profiles():
 
         likers_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((
             By.CLASS_NAME, "social-details-social-counts__reactions-count")))
+        
+        if not likers_section:
+            return all_likers
                 
         likers_section.click()
 
@@ -127,14 +116,14 @@ class scrape_profiles():
                 profile_link_element = soup.find('a', attrs={"rel": "noopener noreferrer"})
                 profile_link = profile_link_element['href']
                 name_element = soup.find('span', attrs={"dir": "ltr", "class": "text-view-model"})
-                name = name_element.text
+                full_name = name_element.text
 
-                name_parts = name.split()
+                name_parts = full_name.split()
                 if len(name_parts) >= 2:
                     first_name = name_parts[0]
                     last_name = ' '.join(name_parts[1:])
 
-                all_likers.append((profile_link, first_name, last_name, name))
+                all_likers.append((profile_link, first_name, last_name, full_name))
             except Exception as e:
                 print(f"Error processing liker: {e}")
 
@@ -143,15 +132,107 @@ class scrape_profiles():
     
 
 
-    def export_data(self, post_link: str):
+
+    def get_commenters_from_post(self, post_link: str):
+        all_commenters = list()
+
+        self.driver.get(post_link)
+
+        time.sleep(1)
+
+        # Scroll incrementally until the commenters section is found or we reach the bottom
+        last_height = self.driver.execute_script("return document.body.scrollHeight;")
+        scroll_to_class = "update-v2-social-activity"
+        commenters_section_css = ".feed-shared-update-v2__comments-container"
+        commenters_section = None
+
+        while True:
+            # Scroll down a bit
+            self.driver.execute_script("window.scrollBy(0, 400);")
+            time.sleep(2)  # Give it time to load
+
+            try:
+                scroll_to = self.driver.find_element(By.CLASS_NAME, scroll_to_class)
+                break  # Exit the loop if commenters section is found
+            except:
+                new_height = self.driver.execute_script("return document.body.scrollHeight;")
+                if new_height == last_height:
+                    return all_commenters  # Return the empty list if we reach the bottom and commenters section is not found
+                last_height = new_height
+
+        if not scroll_to:
+            return all_commenters  # Return the empty list if commenters section is not found
+        
+        try:
+            commenters_button = self.driver.find_element(By.CSS_SELECTOR, ".social-details-social-counts__item--right-aligned")
+            commenters_button.click()
+        except:
+            return all_commenters
+        
+        time.sleep(1)
+
+        commenters_section = self.driver.find_element(By.CSS_SELECTOR, commenters_section_css)
+        commenters_list = commenters_section.find_element(By.CLASS_NAME, "comments-comment-list__container")
+
+        # Scroll to load all commenters
+        last_height = self.driver.execute_script("return arguments[0].scrollHeight", commenters_list)
+
+        while True:
+            self.driver.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight);", commenters_list)
+            time.sleep(2)  # Give it time to load more commenters
+            new_height = self.driver.execute_script("return arguments[0].scrollHeight", commenters_list)
+            if new_height == last_height:
+                # Add a short delay to ensure final comments load
+                time.sleep(3)
+                new_height = self.driver.execute_script("return arguments[0].scrollHeight", commenters_list)
+                final_height = self.driver.execute_script("return arguments[0].scrollHeight", commenters_list)
+                if final_height == new_height:
+                    break
+
+            last_height = new_height
+
+        commenters = commenters_list.find_elements(By.CLASS_NAME, "comments-comment-entity")
+
+
+
+        for com in commenters:
+            try:
+                commenter_html = com.get_attribute('outerHTML')
+                soup = BeautifulSoup(commenter_html, 'html.parser')
+                profile_link = soup.find('a', class_="app-aware-link tap-target overflow-hidden")['href']
+                full_name = soup.find('span', class_="comments-comment-meta__description-title").text
+
+                name_parts = full_name.split()
+                if len(name_parts) >= 2:
+                    first_name = name_parts[0]
+                    last_name = ' '.join(name_parts[1:])
+
+                all_commenters.append((profile_link, first_name, last_name, full_name))
+
+            except Exception as e:
+                print(f"Error processing commenter: {e}")
+
+        return all_commenters
+
+
+
+
+    def export_data(self, email: str, password: str, post_link: str):
+        self.sign_in(email=email, password=password)
+
         # Gather all data to export
-        data = self.get_likers_from_post(post_link=post_link)
+        likers_data = self.get_likers_from_post(post_link=post_link)
+        commenters_data = self.get_commenters_from_post(post_link=post_link)
 
         with open('scraped_profiles.csv', mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow(['Profile Link', 'First Name', 'Last Name', 'Full Name'])  # Write header
-            for person_data in data:
-                writer.writerow([person_data[0], person_data[1], person_data[2], person_data[3]])
+
+            for liker_data in likers_data:
+                writer.writerow([liker_data[0], liker_data[1], liker_data[2], liker_data[3]])
+
+            for commenter_data in commenters_data:
+                writer.writerow([commenter_data[0], commenter_data[1], commenter_data[2], commenter_data[3]])
 
         self.driver.close()
 
