@@ -35,31 +35,16 @@ class organizeData():
         time.sleep(1)
         
         try:
-            signInOneXPATH1 = '//a[@class="nav__button-secondary btn-md btn-secondary-emphasis"]'
-            signInOneXPATH2 = '//a[@class="nav__button-secondary btn-sm btn-primary"]'
+            signInOne = self.driver.find_element(By.LINK_TEXT, "Sign in")
 
-            path1 = True
-
-            signInOneV1 = self.driver.find_element(By.XPATH, signInOneXPATH1)
-
-            if signInOneV1 is not None:
-                signInOneV1.click()
-
-            else:
-                signInOneV2 = self.driver.find_element(By.XPATH, signInOneXPATH2)
-                signInOneV2.click()
-                path1 = False
+            if signInOne:
+                signInOne.click()
 
         except Exception as e: 
             print("Couldn't find first sign in button")
             return
 
         time.sleep(1)
-
-        if not path1:
-            goToCredentials = self.driver.find_element(By.CLASS_NAME, "main__sign-in-link")
-            goToCredentials.click()
-            time.sleep(1)
 
         try:
             inputXPATH = '//input[@id="username"]'
@@ -129,21 +114,19 @@ class organizeData():
                 try:
                     experiences_element = WebDriverWait(self.driver, 20).until(
                     EC.presence_of_element_located((By.CLASS_NAME, "pvs-list__container")))
-                except TimeoutError:
+                except:
                     print(f"Timeout while waiting for experiences container for URL: {url}")
                     continue
 
                 soup2 = BeautifulSoup(self.driver.page_source, 'html.parser')
                 experiences = soup2.find('div', class_="pvs-list__container")
 
-                if experiences is None:
-                    print(f"Could not find experiences container for URL: {url}")
-                    continue
 
                 try:
                     current_experience = experiences.find('li', class_="pvs-list__paged-list-item artdeco-list__item pvs-list__item--line-separated pvs-list__item--one-column")
-                except Exception as e:
-                    print(f"Error finding current experience for URL: {url} - {e}")
+                except:
+                    organized_data[row[3]] = (person_location, "No current employment", "No current employment", 
+                                          "No current employment",  0, "No current employment", url, row[4])
                     continue
 
                 current_company_section = current_experience.find('div', class_= "display-flex align-items-center mr1 hoverable-link-text t-bold")
@@ -155,8 +138,13 @@ class organizeData():
                     positions_list = current_experience.find('ul', attrs={'tabindex': '-1'})
                     current_position_section = positions_list.find('div', class_="display-flex align-items-center mr1 hoverable-link-text t-bold")
 
+                try:
+                    company = current_company_section.find('span', class_="visually-hidden").text
+                except:
+                    organized_data[row[3]] = (person_location, "No current employment", "No current employment", 
+                                          "No current employment",  0, "No current employment", url, row[4])
+                    continue
 
-                company = current_company_section.find('span', class_="visually-hidden").text
                 position = current_position_section.find('span', class_="visually-hidden").text
 
                 #Get Company Size
@@ -174,7 +162,7 @@ class organizeData():
                 company_data = self.__find_company_data()
                 
                 organized_data[row[3]] = (person_location, company, company_data[0], 
-                                          company_data[1],  company_data[2], position, url)
+                                          company_data[1],  company_data[2], position, url, row[4])
 
         
         sorted_list = sorted(organized_data.items(), key=lambda item: item[1][4], reverse=True) 
@@ -262,22 +250,22 @@ class organizeData():
         # Optionally, write a header row
         sheet.append(['Name', 'Individual Location', 'Company', 
                       'Company Industry', 'Company Location', 'Company Size', 
-                      'Position,', 'LinkedIn Profile URL'])
+                      'Position', 'LinkedIn Profile URL', 'Post Date'])
 
 
         # Write the key-value pairs
-        for key, (value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6, value_part_7) in data.items():
-            sheet.append([key, value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6, value_part_7])
+        for key, (value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6, value_part_7, value_part_8) in data.items():
+            sheet.append([key, value_part1, value_part2, value_part3, value_part_4, value_part_5, value_part_6, value_part_7, value_part_8])
 
 
         #Style Sheet
         border_style = Border(bottom=Side(border_style='thin'))
 
-        for col in range(1, 9):  # Columns A, B, C, D, E, F, G (1-based index)
+        for col in range(1, 10):  # Columns A, B, C, D, E, F, G, H, I (1-based index)
             cell = sheet.cell(row=1, column=col)
             cell.border = border_style
 
-        columns_to_resize = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        columns_to_resize = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
         column_width = 28
         
 

@@ -79,8 +79,14 @@ class scrape_profiles():
 
         self.driver.get(post_link)
 
+        time.sleep(1)
+
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        post_date_section = soup.find('a', class_ = "app-aware-link update-components-actor__sub-description-link")
+        post_date = post_date_section['aria-label']
+
         likers_section = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((
-            By.CLASS_NAME, "social-details-social-counts__reactions-count")))
+            By.CLASS_NAME, "social-details-social-counts__count-value")))
         
         if not likers_section:
             return all_likers
@@ -123,7 +129,7 @@ class scrape_profiles():
                     first_name = name_parts[0]
                     last_name = ' '.join(name_parts[1:])
 
-                all_likers.append((profile_link, first_name, last_name, full_name))
+                all_likers.append((profile_link, first_name, last_name, full_name, post_date))
             except Exception as e:
                 print(f"Error processing liker: {e}")
 
@@ -138,7 +144,11 @@ class scrape_profiles():
 
         self.driver.get(post_link)
 
-        time.sleep(1)
+        time.sleep(3)
+
+        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+        post_date_section = soup.find('a', class_ = "app-aware-link update-components-actor__sub-description-link")
+        post_date = post_date_section['aria-label']
 
         # Scroll incrementally until the commenters section is found or we reach the bottom
         last_height = self.driver.execute_script("return document.body.scrollHeight;")
@@ -207,7 +217,7 @@ class scrape_profiles():
                     first_name = name_parts[0]
                     last_name = ' '.join(name_parts[1:])
 
-                all_commenters.append((profile_link, first_name, last_name, full_name))
+                all_commenters.append((profile_link, first_name, last_name, full_name, post_date))
 
             except Exception as e:
                 print(f"Error processing commenter: {e}")
@@ -226,48 +236,12 @@ class scrape_profiles():
 
         with open('scraped_profiles.csv', mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
-            writer.writerow(['Profile Link', 'First Name', 'Last Name', 'Full Name'])  # Write header
+            writer.writerow(['Profile Link', 'First Name', 'Last Name', 'Full Name', 'Post Date'])  # Write header
 
             for liker_data in likers_data:
-                writer.writerow([liker_data[0], liker_data[1], liker_data[2], liker_data[3]])
+                writer.writerow([liker_data[0], liker_data[1], liker_data[2], liker_data[3], liker_data[4]])
 
             for commenter_data in commenters_data:
-                writer.writerow([commenter_data[0], commenter_data[1], commenter_data[2], commenter_data[3]])
+                writer.writerow([commenter_data[0], commenter_data[1], commenter_data[2], commenter_data[3], commenter_data[4]])
 
         self.driver.close()
-
-    #    # Create a new workbook and select the active worksheet
-    #     workbook = openpyxl.Workbook()
-    #     sheet = workbook.active
-
-    #     # Optionally, write a header row
-    #     sheet.append(['Profile Link', 'Name'])
-
-
-    #     # Write the key-value pairs
-    #     for person_data in data:
-    #         sheet.append([person_data[0], person_data[1], person_data[2]])
-
-
-    #     #Style Sheet
-    #     border_style = Border(bottom=Side(border_style='thin'))
-
-    #     for col in range(1, 3):  # Columns A, B(1-based index)
-    #         cell = sheet.cell(row=1, column=col)
-    #         cell.border = border_style
-
-    #     columns_to_resize = ['A', 'B']
-    #     column_width = 28
-        
-
-    #     for col_letter in columns_to_resize:
-    #         sheet.column_dimensions[col_letter].width = column_width
-
-
-
-        # Save the workbook to a file
-        # workbook.save('scraped_profiles.xlsx')
-
-
-
-        
