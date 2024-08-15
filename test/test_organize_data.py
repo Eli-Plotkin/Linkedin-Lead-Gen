@@ -1,6 +1,12 @@
 from src.organize_data import organizeData
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def test_organize_data():
     od = organizeData()
-    companies_and_size_and_positions = od.get_data('data/result(2).csv')
-    od.export_data(companies_and_size_and_positions)
+    od.export_organized_data(csvFile='scraped_profiles.csv', 
+                             email=os.getenv('MY_LINKEDIN_EMAIL_ADDRESS'), 
+                             password=os.getenv('MY_LINKEDIN_PASSWORD'),
+                             is_test_data=True)
