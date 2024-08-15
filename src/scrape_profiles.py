@@ -11,6 +11,7 @@ class scrapeProfiles():
         self.driver = None
         try:
             self.options = webdriver.ChromeOptions()
+            self.options.add_argument("--headless")
             self.options.add_experimental_option("excludeSwitches", ["enable-automation"])
             self.options.add_experimental_option("useAutomationExtension", False)
         except Exception as e:
