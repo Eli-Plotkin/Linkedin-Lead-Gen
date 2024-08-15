@@ -1,18 +1,16 @@
 from scrape_profiles import scrapeProfiles
 from organize_data import organizeData
+from dotenv import load_dotenv
+import os
 
-
-MY_POST_LINK = "https://www.linkedin.com/posts/brighthire_who-owns-interview-planning-the-recruiter-activity-7206335182633672704-FhWe?utm_source=share&utm_medium=member_desktop"
-MY_LINKEDIN_LOGIN_EMAIL = "aeplotkin@gmail.com"
-MY_LINKEDIN_LOGIN_PASSWORD = "MonkeyMilo1"
-
-
+load_dotenv()
 
 sp = scrapeProfiles()
-if sp.export_scraped_data(email="aeplotkin@gmail.com", password="MonkeyMilo1",
-                        post_link="https://www.linkedin.com/posts/brighthire_who-owns-interview-planning-the-recruiter-activity-7206335182633672704-FhWe?utm_source=share&utm_medium=member_desktop"):
+if sp.export_scraped_data(email=os.getenv("MY_LINKEDIN_EMAIL_ADDRESS"), 
+                          password=os.getenv("MY_LINKEDIN_PASSWORD"),
+                          post_link=os.getenv("MY_POST_LINK")):
     od = organizeData()
     od.export_organized_data(csvFile='scraped_profiles.csv', 
-                             email="aeplotkin@gmail.com", 
-                             password="MonkeyMilo1",
-                             is_test_data=True)
+                             email=os.getenv("MY_LINKEDIN_EMAIL_ADDRESS"), 
+                             password=os.getenv("MY_LINKEDIN_PASSWORD"),
+                             is_test_data=False)

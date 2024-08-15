@@ -1,7 +1,11 @@
 from src.scrape_profiles import scrapeProfiles
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def test_scrape_profiles():
     sp = scrapeProfiles()
-    sp.export_scraped_data(email="aeplotkin@gmail.com", 
-                    password="MonkeyMilo1",
-                    post_link="https://www.linkedin.com/posts/brighthire_who-owns-interview-planning-the-recruiter-activity-7206335182633672704-FhWe?utm_source=share&utm_medium=member_desktop")
+    sp.export_scraped_data(email=os.getenv('MY_LINKEDIN_EMAIL_ADDRESS'), 
+                    password=os.getenv('MY_LINKEDIN_PASSWORD'),
+                    post_link=os.getenv('MY_POST_LINK'))
