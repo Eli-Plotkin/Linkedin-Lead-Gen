@@ -273,8 +273,11 @@ class organizeData():
         for col_letter in columns_to_resize:
             sheet.column_dimensions[col_letter].width = column_width
 
+        # Format the date to a filename-safe string in filename
+        filename = f'LinkedIn_Scraper_{date.today().strftime("%Y-%m-%d")}.xlsx'
+
         # Save the workbook to a file
-        workbook.save(f'LinkedIn Scraper {date.today()}')
+        workbook.save(filename)
 
 
     # def sign_in_apollo(self, email: str, password: str):
