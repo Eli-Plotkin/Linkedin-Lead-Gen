@@ -27,8 +27,18 @@ class organizeData():
             print("Error creating webdriver instance")
         
 
+    def is_account_flagged(self):
+        is_flagged = False
 
-    def __sign_in(self, email: str, password: str):
+        try:
+            security_check = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "upper-ctn")))
+        except:
+            is_flagged = True
+        
+        return is_flagged
+
+
+    def sign_in(self, email: str, password: str) -> bool:
 
         self.driver.get('https://www.linkedin.com/')
         self.driver.maximize_window()
@@ -40,9 +50,9 @@ class organizeData():
             if signInOne:
                 signInOne.click()
 
-        except Exception as e: 
+        except Exception: 
             print("Couldn't find first sign in button")
-            return
+            return False
 
         time.sleep(1)
 
@@ -67,12 +77,19 @@ class organizeData():
             signInButtonTwo.click()
         except Exception as e: 
             print("Error entering email and password")
+            return False
 
+        if self.is_account_flagged():
+            print("LinkedIn Account is flagged. Try again in a couple hours")
+            return False
         
         msgXPATH = '//*[@id="global-nav"]/div/nav/ul/li[4]/a/div'
         itWorks = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, msgXPATH)))
         itWorks = self.driver.find_element(By.XPATH, msgXPATH)
-        assert itWorks is not None, "Sign in credentials incorrect"
+
+        if itWorks is None:
+            return False
+        return True
 
         
 
@@ -80,8 +97,12 @@ class organizeData():
         with open(csvFile, mode='r', newline='') as file:
             csvReader = csv.reader(file)
             rows = list(csvReader)
+            
+            organized_data = dict()
 
-            self.__sign_in(email=email, password=password)
+            if not self.sign_in(email=email, password=password):
+                return organized_data
+            
             organized_data = dict()
 
             if is_test_data:

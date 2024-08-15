@@ -22,23 +22,32 @@ class scrapeProfiles():
             print("Error creating webdriver instance")
     
 
-    def sign_in(self, email: str, password: str):
+    def is_account_flagged(self):
+        is_flagged = False
+
+        try:
+            security_check = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "upper-ctn")))
+        except:
+            is_flagged = True
+        
+        return is_flagged
+
+
+    def sign_in(self, email: str, password: str) -> bool:
 
         self.driver.get('https://www.linkedin.com/')
         self.driver.maximize_window()
-
         time.sleep(1)
-
+        
         try:
-
             signInOne = self.driver.find_element(By.LINK_TEXT, "Sign in")
 
             if signInOne:
                 signInOne.click()
 
-        except Exception as e: 
-            print("Couldn't find sign in button")
-            return
+        except Exception: 
+            print("Couldn't find first sign in button")
+            return False
 
         time.sleep(1)
 
@@ -63,11 +72,19 @@ class scrapeProfiles():
             signInButtonTwo.click()
         except Exception as e: 
             print("Error entering email and password")
+            return False
 
+        if self.is_account_flagged():
+            print("LinkedIn Account is flagged. Try again in a couple hours")
+            return False
+        
         msgXPATH = '//*[@id="global-nav"]/div/nav/ul/li[4]/a/div'
         itWorks = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, msgXPATH)))
         itWorks = self.driver.find_element(By.XPATH, msgXPATH)
-        assert itWorks is not None, "Sign in credentials incorrect"
+
+        if itWorks is None:
+            return False
+        return True
 
 
     def get_likers_from_post(self, post_link: str):
@@ -131,8 +148,6 @@ class scrapeProfiles():
 
 
         return all_likers
-    
-
 
 
     def get_commenters_from_post(self, post_link: str):
@@ -223,21 +238,26 @@ class scrapeProfiles():
 
 
 
-    def export_data(self, email: str, password: str, post_link: str):
-        self.sign_in(email=email, password=password)
+    def export_scraped_data(self, email: str, password: str, post_link: str):
+        if not self.sign_in(email=email, password=password):
+            print("Error signing in, could not scrape profiles")
+            return False
 
-        # Gather all data to export
-        likers_data = self.get_likers_from_post(post_link=post_link)
-        commenters_data = self.get_commenters_from_post(post_link=post_link)
+        try:
+            # Gather all data to export
+            likers_data = self.get_likers_from_post(post_link=post_link)
+            commenters_data = self.get_commenters_from_post(post_link=post_link)
 
-        with open('scraped_profiles.csv', mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Profile Link', 'First Name', 'Last Name', 'Full Name', 'Post Date'])  # Write header
+            with open('scraped_profiles.csv', mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Profile Link', 'First Name', 'Last Name', 'Full Name', 'Post Date'])  # Write header
 
-            for liker_data in likers_data:
-                writer.writerow([liker_data[0], liker_data[1], liker_data[2], liker_data[3], liker_data[4]])
+                for liker_data in likers_data:
+                    writer.writerow([liker_data[0], liker_data[1], liker_data[2], liker_data[3], liker_data[4]])
 
-            for commenter_data in commenters_data:
-                writer.writerow([commenter_data[0], commenter_data[1], commenter_data[2], commenter_data[3], commenter_data[4]])
-
+                for commenter_data in commenters_data:
+                    writer.writerow([commenter_data[0], commenter_data[1], commenter_data[2], commenter_data[3], commenter_data[4]])
+        except:
+            return False
         self.driver.close()
+        return True
