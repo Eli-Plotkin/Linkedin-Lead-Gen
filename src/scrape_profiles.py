@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 import time
 from bs4 import BeautifulSoup
 
-class scrape_profiles():
+class scrapeProfiles():
     def __init__(self):
         self.driver = None
         try:

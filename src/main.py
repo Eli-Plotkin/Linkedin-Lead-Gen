@@ -1,4 +1,4 @@
-from scrape_profiles import scrape_profiles
+from scrape_profiles import scrapeProfiles
 from organize_data import organizeData
 
 
@@ -8,7 +8,7 @@ MY_LINKEDIN_LOGIN_PASSWORD = "MonkeyMilo1"
 
 
 
-sp = scrape_profiles()
+sp = scrapeProfiles()
 sp.export_data(email=MY_LINKEDIN_LOGIN_EMAIL, 
                 password=MY_LINKEDIN_LOGIN_PASSWORD,
                 post_link=MY_POST_LINK)
