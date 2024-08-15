@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 import time
 from bs4 import BeautifulSoup
 import re
+from datetime import date
 
 
 class organizeData():
@@ -99,7 +100,9 @@ class organizeData():
 
                 self.driver.get(url=url)
 
-                time.sleep(5)
+                # self.sign_in_apollo(email="eliplot@umich.edu", password="4zCAA-WJs4Hp*_W")
+
+                time.sleep(4)
 
                 soup1 = BeautifulSoup(self.driver.page_source, 'html.parser')
                 person_location = soup1.find('span', class_="text-body-small inline t-black--light break-words").text.strip()
@@ -203,7 +206,6 @@ class organizeData():
         industry = data[0].text.strip()
         location = data[1].text.strip()
 
-        # size = data_section.find('a', class_ = "ember-view org-top-card-summary-info-list__info-item").text.strip()
         size = self.__find_exact_company_size()
 
         relevant_data = tuple((industry, location, size))
@@ -273,4 +275,48 @@ class organizeData():
             sheet.column_dimensions[col_letter].width = column_width
 
         # Save the workbook to a file
-        workbook.save('output.xlsx')
+        workbook.save(f'LinkedIn Scraper {date.today()}')
+
+
+    # def sign_in_apollo(self, email: str, password: str):
+    #     time.sleep(3)
+
+    #     apollo_icon_xpath = '//img[@alt="Apollo"]'
+    #     apollo_icon = self.driver.find_element(By.XPATH, apollo_icon_xpath)
+
+    #     if apollo_icon:
+    #         apollo_icon.click()
+
+    #     time.sleep(3)
+
+    #     window_handles = self.driver.window_handles
+    #     self.driver.switch_to.window(window_handles[1])
+
+    #     input_section_xpath = '//input[@name="email"]'
+    #     input_section = self.driver.find_element(By.XPATH, input_section_xpath)
+    #     input_section.send_keys(email)
+
+    #     password_section_xpath = '//input[@name="password"]'
+    #     password_section = self.driver.find_element(By.XPATH, password_section_xpath)
+    #     password_section.send_keys(password + Keys.ENTER)
+
+    #     time.sleep(2)
+        
+    #     self.driver.switch_to.window(window_handles[0])
+
+    #     time.sleep(30)
+
+    #     email_button = None
+    #     try:
+    #         email_button = self.driver.find_element(By.LINK_TEXT, "Access Email")
+    #     except:
+    #         print("No Email Button")
+
+    #     if email_button:
+    #         email_button.click()
+    #     time.sleep(10)
+
+    #     soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+    #     email_section = soup.find('div', class_ = "onboardingTourStepOne")
+    #     email = email_section.findChild('div').findChild('div').findChild('div').findChild('div').findChild('div').next_sibling.findChild('div').text
+    #     print(email)
