@@ -24,12 +24,13 @@ class scrapeProfiles():
     
 
     def is_account_flagged(self):
-        is_flagged = False
+        is_flagged = True
 
         try:
-            security_check = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "upper-ctn")))
+            time.sleep(2)
+            security_check = self.driver.find_element(By.CLASS_NAME, "upper-ctn")
         except:
-            is_flagged = True
+            is_flagged = False
         
         return is_flagged
 
